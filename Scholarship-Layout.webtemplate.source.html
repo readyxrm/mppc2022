@@ -1,0 +1,103 @@
+<div class="wrapper-body">
+  <div class="container">
+    <div class="page-heading">
+        {% block breadcrumbs %}
+        {% include 'Breadcrumbs' %}
+        {% endblock %}
+        {% block title %}
+        {% include 'Page Header' %}
+        {% endblock %}
+    </div>
+  </div>
+  <div id="mainContent">
+  {% include 'PortalWebAPI' %}
+  {% block main %}
+
+    <!--Example of Custom CSS-->
+    <style>
+      body {
+        background-color: lightblue;
+      }
+      h1 {
+        color: white;
+        text-align: center;
+      }
+      p {
+        font-family: verdana;
+        font-size: 18px;
+      }
+    </style>
+
+    <!--utilizing divs to organize the page -->
+    <div class="row sectionBlockLayout text-left" style="display: flex; flex-wrap: wrap; margin: 0px; min-height: auto; padding: 8px;">
+      <div class="container" style="padding: 0px; display: flex; flex-wrap: wrap;">
+        <div class="col-md-12 columnBlockLayout" style="flex-grow: 1; display: flex; flex-direction: column; min-width: 300px; margin: 5px 0px; padding: 5px;">
+
+        <!-- Example of Content Snippets -->
+        <p>{{ snippets["banner_message"] }}</p>
+      
+        <!-- Example of Site Markers -->
+        {% assign contactus_marker = sitemarkers["Contact Us"] %}
+        <p><a href="{{contactus_marker.url}}">Contact Us</a></p>
+        
+        <!-- FetchXML Liquid Tag -->
+        {% fetchxml scholarships %}
+        <fetch returntotalrecordcount="true">
+          <entity name="nd_scholarship">
+            <attribute name="nd_scholarshipamount" />
+            <attribute name="nd_applicationdeadline" />
+            <attribute name="nd_description" />
+            <attribute name="nd_scholarshipname" />
+            <attribute name="nd_applicationopens" />
+            <attribute name="nd_scholarshipid" />
+          </entity>
+        </fetch>
+        {% endfetchxml %}
+
+        <!--Liquid to go through results of FetchXML-->
+        {% if scholarships.results.total_record_count > 0 %}
+          {% for scholarship in scholarships.results.entities %}
+            <H3>{{scholarship.nd_scholarshipname}}</H3>
+            </br>
+            <p>
+            <!--editable text area, tagged with record GUID and JavaScript function to update text.-->  
+            <textarea id={{scholarship.id}} rows="3" cols="80" onchange="update('{{scholarship.id}}')">{{scholarship.nd_description | strip}}</textarea>
+            </p>
+            </br>
+            <!--other attributes to display-->
+            Amount: {{scholarship.nd_scholarshipamount | decimals: 0, "en-US" | prepend: "$" }}
+            </br>  
+            Application Deadline: {{scholarship.nd_applicationdeadline | date: 'MMMM dd, yyyy'}}
+            </br>
+          {% endfor %}
+        {% endif %}
+        <!--JavaScript to call portals Web API and update Dataverse directly without form submission-->
+        <script>
+          function update(recordid) {
+
+            //we use doc object to get text. 
+            var record = {};
+            record.nd_description = document.getElementById(recordid).value.trim();
+
+            //this uses portal Web API code to update Dataverse
+            webapi.safeAjax({
+              type: "PATCH",
+              contentType: "application/json",
+              url: "/_api/nd_scholarships("+recordid+")",
+              data: JSON.stringify(record),
+              success: function (data, textStatus, xhr) {
+                console.log("Record updated");
+              },
+              error: function (xhr, textStatus, errorThrown) {
+                console.log(xhr);
+              }
+            });
+          }
+        </script>
+      {% endblock %}
+      </div>
+    </div>
+  </div>    
+  </div>
+<div class="push"></div>
+</div>
